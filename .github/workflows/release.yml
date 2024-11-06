@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "cube-demo/v*"  # This triggers the workflow on version tags (e.g., v1.0.0)
+
+permissions: write-all
+  # contents: write  # Allows writing to repository contents
+  # issues: write   # Allows writing to issues
+  # pull-requests: write  # Allows writing to pull requests
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'  # Specify your .NET version
+
+      - name: Publish
+        run: dotnet publish ./Cube.Demo/Cube.Demo.csproj -c Release --self-contained true -o ./publish/any -p:PublishSingleFile=true 
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./publish/any/Cube.Demo.exe  # Update with your executable name
+          asset_name: Cube.Demo.exe  # Update with your desired asset name
+          asset_content_type: application/octet-stream
